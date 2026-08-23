@@ -1,0 +1,10 @@
+[package]
+name = "kanban-fmt"
+version = "0.1.0"
+edition = "2021"
+description = "Validating parser and pretty printer for plain-text kanban board exports"
+license = "MIT"
+
+[[bin]]
+name = "kanban-fmt"
+path = "src/main.rs"
