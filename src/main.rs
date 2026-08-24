@@ -38,8 +38,16 @@ fn main() {
                 print!("{}", printer::pretty_print(&board));
             }
         }
-        Err(err) => {
-            eprint!("{}", err.render(&path, &source));
+        Err(errors) => {
+            for (idx, err) in errors.iter().enumerate() {
+                if idx > 0 {
+                    eprintln!();
+                }
+                eprint!("{}", err.render(&path, &source));
+            }
+            if errors.len() > 1 {
+                eprintln!("\nerror: aborting due to {} previous errors", errors.len());
+            }
             process::exit(1);
         }
     }

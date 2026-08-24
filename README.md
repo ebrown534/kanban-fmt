@@ -97,11 +97,42 @@ error: column 'Todo' is defined more than once
   = note: first defined on line 3
 ```
 
+A file can have more than one problem. All of them are reported in one run,
+not just the first. Given a file with both a missing card title and a
+duplicate column:
+
+```
+board: Sprint 12
+
+column: Todo
+- @alice
+
+column: Todo
+- Write docs
+```
+
+```
+$ kanban-fmt board.kbx
+error: card title cannot be empty
+--> board.kbx:4:3
+  |
+4 | - @alice
+  |   ^
+
+error: column 'Todo' is defined more than once
+--> board.kbx:6:1
+  |
+6 | column: Todo
+  | ^^^^^^^^^^^^
+  = note: first defined on line 3
+
+error: aborting due to 2 previous errors
+```
+
 ## Status
 
-Early. The parser and printer both work end to end for the format above, but
-error reporting currently stops at the first problem in the file rather than
-collecting all of them. See the code for what's implemented.
+Early. The parser and printer both work end to end for the format above.
+See the code for what's implemented.
 
 ## Building
 
