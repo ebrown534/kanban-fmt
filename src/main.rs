@@ -7,9 +7,16 @@ use std::env;
 use std::fs;
 use std::process;
 
+#[derive(PartialEq)]
+enum Mode {
+    Print,
+    Check,
+    Write,
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let (check_only, path) = match parse_args(&args) {
+    let (mode, path) = match parse_args(&args) {
         Ok(v) => v,
         Err(message) => {
             eprintln!("{}", message);
@@ -26,18 +33,28 @@ fn main() {
     };
 
     match parser::parse(&source) {
-        Ok(board) => {
-            if check_only {
+        Ok(board) => match mode {
+            Mode::Check => {
                 let card_count: usize = board.columns.iter().map(|c| c.cards.len()).sum();
                 println!(
                     "ok: {} column(s), {} card(s)",
                     board.columns.len(),
                     card_count
                 );
-            } else {
+            }
+            Mode::Print => {
                 print!("{}", printer::pretty_print(&board));
             }
-        }
+            Mode::Write => {
+                let formatted = printer::pretty_print(&board);
+                if formatted != source {
+                    if let Err(e) = fs::write(&path, formatted) {
+                        eprintln!("error: could not write '{}': {}", path, e);
+                        process::exit(2);
+                    }
+                }
+            }
+        },
         Err(errors) => {
             for (idx, err) in errors.iter().enumerate() {
                 if idx > 0 {
@@ -53,13 +70,17 @@ fn main() {
     }
 }
 
-fn parse_args(args: &[String]) -> Result<(bool, String), String> {
-    let mut check_only = false;
+fn parse_args(args: &[String]) -> Result<(Mode, String), String> {
+    let mut mode = Mode::Print;
     let mut path: Option<String> = None;
 
     for arg in &args[1..] {
-        if arg == "--check" {
-            check_only = true;
+        if arg == "--check" || arg == "--write" {
+            let requested = if arg == "--check" { Mode::Check } else { Mode::Write };
+            if mode != Mode::Print && mode != requested {
+                return Err(format!("'--check' and '--write' are mutually exclusive\n\n{}", usage()));
+            }
+            mode = requested;
         } else if arg == "-h" || arg == "--help" {
             return Err(usage());
         } else if path.is_none() {
@@ -70,11 +91,11 @@ fn parse_args(args: &[String]) -> Result<(bool, String), String> {
     }
 
     match path {
-        Some(p) => Ok((check_only, p)),
+        Some(p) => Ok((mode, p)),
         None => Err(usage()),
     }
 }
 
 fn usage() -> String {
-    "usage: kanban-fmt [--check] <file>\n\n  <file>     path to a kanban board export\n  --check    validate only, do not print the formatted board".to_string()
+    "usage: kanban-fmt [--check | --write] <file>\n\n  <file>     path to a kanban board export\n  --check    validate only, do not print the formatted board\n  --write    format the file in place instead of printing to stdout".to_string()
 }

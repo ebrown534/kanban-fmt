@@ -55,6 +55,12 @@ kanban-fmt --check board.kbx
 ok: 3 column(s), 4 card(s)
 ```
 
+Format a file in place (only touches the file if the canonical form differs):
+
+```
+kanban-fmt --write board.kbx
+```
+
 ## What a broken file looks like
 
 Given this file, where a card is missing its title:
