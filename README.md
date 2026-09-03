@@ -61,6 +61,14 @@ Format a file in place (only touches the file if the canonical form differs):
 kanban-fmt --write board.kbx
 ```
 
+Read from stdin by passing `-` instead of a path (useful in a pipeline; not
+valid with `--write`, since there's no file to write back to):
+
+```
+cat board.kbx | kanban-fmt -
+cat board.kbx | kanban-fmt --check -
+```
+
 ## What a broken file looks like
 
 Given this file, where a card is missing its title:

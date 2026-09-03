@@ -5,6 +5,7 @@ mod printer;
 
 use std::env;
 use std::fs;
+use std::io::{self, Read};
 use std::process;
 
 #[derive(PartialEq)]
@@ -24,13 +25,31 @@ fn main() {
         }
     };
 
-    let source = match fs::read_to_string(&path) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("error: could not read '{}': {}", path, e);
-            process::exit(2);
+    if path == "-" && mode == Mode::Write {
+        eprintln!("error: --write requires a file path, stdin has nowhere to write back to");
+        process::exit(2);
+    }
+
+    let source = if path == "-" {
+        let mut buf = String::new();
+        match io::stdin().read_to_string(&mut buf) {
+            Ok(_) => buf,
+            Err(e) => {
+                eprintln!("error: could not read stdin: {}", e);
+                process::exit(2);
+            }
+        }
+    } else {
+        match fs::read_to_string(&path) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("error: could not read '{}': {}", path, e);
+                process::exit(2);
+            }
         }
     };
+
+    let display_name = if path == "-" { "<stdin>" } else { &path };
 
     match parser::parse(&source) {
         Ok(board) => match mode {
@@ -60,7 +79,7 @@ fn main() {
                 if idx > 0 {
                     eprintln!();
                 }
-                eprint!("{}", err.render(&path, &source));
+                eprint!("{}", err.render(display_name, &source));
             }
             if errors.len() > 1 {
                 eprintln!("\nerror: aborting due to {} previous errors", errors.len());
@@ -97,5 +116,5 @@ fn parse_args(args: &[String]) -> Result<(Mode, String), String> {
 }
 
 fn usage() -> String {
-    "usage: kanban-fmt [--check | --write] <file>\n\n  <file>     path to a kanban board export\n  --check    validate only, do not print the formatted board\n  --write    format the file in place instead of printing to stdout".to_string()
+    "usage: kanban-fmt [--check | --write] <file>\n\n  <file>     path to a kanban board export, or '-' to read from stdin\n  --check    validate only, do not print the formatted board\n  --write    format the file in place instead of printing to stdout (not valid with '-')".to_string()
 }
